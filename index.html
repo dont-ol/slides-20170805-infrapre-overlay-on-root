@@ -1,13 +1,13 @@
 <!doctype html>
-<html>
+<html lang='en'>
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-		<title>reveal.js</title>
+		<title>UnionFS on root</title>
 
 		<link rel="stylesheet" href="css/reveal.css">
-		<link rel="stylesheet" href="css/theme/black.css">
+		<link rel="stylesheet" href="css/theme/simple.css">
 
 		<!-- Theme used for syntax highlighting of code -->
 		<link rel="stylesheet" href="lib/css/zenburn.css">
@@ -20,12 +20,131 @@
 			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
 			document.getElementsByTagName( 'head' )[0].appendChild( link );
 		</script>
+    <script>
+      // var socketId = 'note';
+    </script>
+    <style>
+      .reveal section img{
+        border: 0;
+      }
+      .reveal .slide-background.present {
+          opacity: 0.3;
+      }
+    </style>
 	</head>
 	<body>
 		<div class="reveal">
 			<div class="slides">
-				<section>Slide 1</section>
-				<section>Slide 2</section>
+        <section>
+          <h2>
+            <code>/</code>をOverlayFSにする
+          </h2>
+          <p><span style="color: blue;">Twitter: </span>@DoNT_oL</p>
+        </section>
+
+        <section data-background="images/windows-xp-bliss-start-screen-100259803-orig.jpg">
+          <h2>昔あった問題</h2>
+          <p>使っているうちに遅くなってくる……</p>
+          <p class="fragment">XP Embeddedの機能のHORM/EWF</p>
+        </section>
+
+        <section data-background="images/archlinux-tribute.jpg">
+          <h2>Arch Linux</h2>
+          <p>大抵の問題は解決した！</p>
+        </section>
+
+        <section>
+          <h2>現在の問題</h2>
+          <ul>
+            <li>時々アップデートで壊れる</li>
+            <li>時々ハングアップする</li>
+            <li><code>/etc</code>だけではなく全体をバージョン管理したい</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>union mount filesystem</h2>
+          <p>
+            読み込み専用のレイヤーの上に書き込み可能な層を重ねて1つのファイルシステムに見せる<br>
+            <img src="images/overlay_constructs.jpg" alt="">
+          </p>
+        </section>
+
+        <section>
+          <h2><code>/</code>をoverlayfsにして<br>起動する</h2>
+          <p>
+            Initもファイルアクセスをするから<br>
+            Init起動前にマウントする必要がある
+          </p>
+          <p class="fragment">
+            <code>/etc/fstab</code>はInitの仕事
+          </p>
+        </section>
+
+        <section>
+          <h2>initramfs</h2>
+          <p>カーネルがInitの前に実行する</p>
+          <p>
+            <a href="https://wiki.archlinuxjp.org/index.php/Mkinitcpio">mkinitcpio - Arch Wiki</a><br>
+          </p>
+          <p class="fragment">
+            カーネル空間で<code>/new_root</code>に<br>
+            <code>/</code>をマウントして<code>switch_root</code>する
+          </p>
+        </section>
+
+        <section>
+          <h2>in initramfs</h2>
+          <table>
+            <tr>
+              <td style="border: 0;">/new_root</td>
+            </tr>
+            <tr>
+              <td style="border: 0;">/overlay/upper</td>
+            </tr>
+            <tr>
+              <td style="border: 0;">/overlay/work</td>
+            </tr>
+          </table>
+          <code style="box-shadow: 0 0 10px #888;display: inline-block;">mount -t overlay -o lowerdir=/new_root,upperdir=/overlay/upper, workdir=/overlay/work overlay /new_root</code>
+        </section>
+
+        <section>
+          <section>
+            <h2>これの問題点</h2>
+            <ul>
+              <li><code>/etc/passwd</code></li>
+              <li>時々ディレクトリが迷子になる</li>
+              <li>ほとんどはpacmanの改造で解決できる</li>
+            </ul>
+          </section>
+          <section>
+            <p style="display: inline-block;text-align: left;">
+              <code>$ ls -a</code><br>
+              <code>total 0</code><br>
+              <br>
+              <code>$ mount -o remount /</code>
+            </p>
+          </section>
+        </section>
+
+        <section>
+          <h2>これからしたいこと</h2>
+          <ul>
+            <li>diffを取って3-way merge</li>
+            <li>lowerdirをもっと分割</li>
+            <li><code>npm</code>や<code>gem</code>用のレイヤーを作る</li>
+            <li>pacmanでのアップデート用のレイヤーを作って、差分で持ってステージング</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>
+            Docker以外でも<br>
+            union mount fileystemを<br>
+            使いましょう！
+          </h2>
+        </section>
 			</div>
 		</div>
 
@@ -41,7 +160,10 @@
 					{ src: 'plugin/markdown/marked.js' },
 					{ src: 'plugin/markdown/markdown.js' },
 					{ src: 'plugin/notes/notes.js', async: true },
-					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'socket.io/socket.io.js', async: true },
+					{ src: 'plugin/notes-server/client.js', async: true }
 				]
 			});
 		</script>
